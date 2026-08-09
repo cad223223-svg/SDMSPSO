@@ -1,0 +1,7 @@
+results/
+*.asv
+*.m~
+*.log
+*.fig
+.DS_Store
+Thumbs.db
