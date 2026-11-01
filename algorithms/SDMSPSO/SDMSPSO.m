@@ -8,11 +8,15 @@ classdef SDMSPSO < ALGORITHM
 %   useMacroQuad    enable macro separable-quadratic candidates (default 1)
 %   useLRSS         enable all local LRSS candidates (default 1)
 %   useAdaptiveTR   enable trust-region adaptation (default 1)
+%   useLocalQuad    enable the local quadratic candidate (default 1)
+%   useOCD          enable the OCD candidate (default 1)
+%   ocdGridSize     number of OCD grid points (default 21)
 
     methods
         function main(Algorithm,Problem)
-            [TR_init,K_loc_max,useMacroQuad,useLRSS,useAdaptiveTR] = ...
-                Algorithm.ParameterSet(0.4,150,1,1,1);
+            [TR_init,K_loc_max,useMacroQuad,useLRSS,useAdaptiveTR, ...
+                useLocalQuad,useOCD,ocdGridSize] = ...
+                Algorithm.ParameterSet(0.4,150,1,1,1,1,1,21);
 
             D = Problem.D;
             lower = Problem.lower;
@@ -23,6 +27,9 @@ classdef SDMSPSO < ALGORITHM
             end
             if any(scale <= 0)
                 error('SDMSPSO:InvalidBounds','Every decision variable must have a nonzero range.');
+            end
+            if ocdGridSize < 3 || mod(ocdGridSize,2) ~= 1
+                error('SDMSPSO:OCDGridSize','ocdGridSize must be an odd integer >= 3.');
             end
 
             initN = 100;
@@ -70,9 +77,12 @@ classdef SDMSPSO < ALGORITHM
                     localF = archiveF(order(1:localCount));
                     S = (localX-incumbent)/tr;
 
-                    [aLocal,bLocal] = fitSeparableQuadratic(S,localF,D);
-                    sQuad = solveBoxQuadratic(aLocal,bLocal,zeros(1,D),-1,1);
-                    zLocalQuad = min(1,max(0,incumbent+tr*sQuad+1e-8*randn(1,D)));
+                    if logical(useLocalQuad)
+                        [aLocal,bLocal] = fitSeparableQuadratic(S,localF,D);
+                        sQuad = solveBoxQuadratic(aLocal,bLocal,zeros(1,D),-1,1);
+                        zLocalQuad = min(1,max(0,incumbent+tr*sQuad+1e-8*randn(1,D)));
+                        candidates = [candidates;zLocalQuad]; %#ok<AGROW>
+                    end
 
                     fMin = min(localF);
                     fRange = max(localF)-fMin;
@@ -88,21 +98,24 @@ classdef SDMSPSO < ALGORITHM
                     zSub = optimizeRbfPso(projected,wSvd,cSvd,sigmaSvd,subDim);
                     zSvd = min(1,max(0,incumbent+tr*(basis*zSub')'));
 
-                    ocdCount = min(D,20);
-                    ocdDims = randperm(D,ocdCount);
-                    ocdTrain = S(:,ocdDims);
-                    [wOcd,cOcd,sigmaOcd] = trainRbf(ocdTrain,localFn,1.0);
-                    zOcd = incumbent;
-                    gridNorm = linspace(-1,1,21)';
-                    for j = 1:ocdCount
-                        test = zeros(21,ocdCount);
-                        test(:,j) = gridNorm;
-                        prediction = predictRbf(test,ocdTrain,wOcd,cOcd,sigmaOcd);
-                        [~,idx] = min(prediction);
-                        zOcd(ocdDims(j)) = incumbent(ocdDims(j))+tr*gridNorm(idx);
+                    candidates = [candidates;zSvd]; %#ok<AGROW>
+                    if logical(useOCD)
+                        ocdCount = min(D,20);
+                        ocdDims = randperm(D,ocdCount);
+                        ocdTrain = S(:,ocdDims);
+                        [wOcd,cOcd,sigmaOcd] = trainRbf(ocdTrain,localFn,1.0);
+                        zOcd = incumbent;
+                        gridNorm = linspace(-1,1,ocdGridSize)';
+                        for j = 1:ocdCount
+                            test = zeros(ocdGridSize,ocdCount);
+                            test(:,j) = gridNorm;
+                            prediction = predictRbf(test,ocdTrain,wOcd,cOcd,sigmaOcd);
+                            [~,idx] = min(prediction);
+                            zOcd(ocdDims(j)) = incumbent(ocdDims(j))+tr*gridNorm(idx);
+                        end
+                        zOcd = min(1,max(0,zOcd));
+                        candidates = [candidates;zOcd]; %#ok<AGROW>
                     end
-                    zOcd = min(1,max(0,zOcd));
-                    candidates = [candidates;zLocalQuad;zSvd;zOcd]; %#ok<AGROW>
                 end
 
                 candidates = removeDuplicates(candidates,Xn,1e-11);
@@ -235,3 +248,4 @@ function uniqueCandidates = removeDuplicates(candidates,archive,tolerance)
         end
     end
 end
+

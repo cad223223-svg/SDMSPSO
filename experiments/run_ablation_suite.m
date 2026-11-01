@@ -4,10 +4,10 @@ cfg = paper_settings();
 if nargin < 1 || isempty(outputDirectory), outputDirectory = fullfile(pwd,'results','ablation'); end
 if nargin < 2 || isempty(runs), runs = cfg.runs; end
 variants = {
-    'SDMSPSO',        {0.4,150,1,1,1};
-    'wo-Quad',        {0.4,150,0,1,1};
-    'wo-LRSS',        {0.4,150,1,0,1};
-    'wo-ATR',         {0.4,150,1,1,0}};
+    'SDMSPSO',        {0.4,150,1,1,1,1,1,21};
+    'wo-Quad',        {0.4,150,0,1,1,1,1,21};
+    'wo-LQS',         {0.4,150,1,1,1,0,1,21};
+    'wo-ATR',         {0.4,150,1,1,0,1,1,21}};
 for f = 1:numel(cfg.functions)
     for d = cfg.ablationDimensions
         for v = 1:size(variants,1)
@@ -24,4 +24,5 @@ for f = 1:numel(cfg.functions)
     end
 end
 end
+
 

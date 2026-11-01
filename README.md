@@ -30,7 +30,7 @@ Clone this repository and PlatEMO, then in MATLAB run:
 
 ```matlab
 addpath(genpath('path/to/PlatEMO/PlatEMO'));
-addpath(genpath('path/to/SDMSPSO-GitHub'));
+addpath(genpath('path/to/SDMSPSO'));
 ```
 
 ## Quick start
@@ -53,6 +53,19 @@ Run the three UAV scenarios:
 ```matlab
 run_uav_suite('results/uav');
 plot_uav_results('results/uav', 'results/figures');
+audit_uav_geometry('results/uav');
+```
+
+The geometric audit writes `uav_geometry_audit.csv`. It checks the saved
+SDMSPSO trajectories at 300 and 3000 spline samples without new optimization
+evaluations; it does not certify continuous-path or flight-dynamic feasibility.
+
+The manuscript's focused component experiments can be run separately:
+
+```matlab
+run_ablation_suite('results/ablation');
+run_ocd_ablation_suite('results/ocd_ablation');
+run_ocd_grid_sensitivity('results/ocd_grid');
 ```
 
 These full experiments are computationally expensive. For a smoke test:
@@ -72,13 +85,17 @@ run_smoke_test;
 - Micro PSO: 50 particles and 30 generations
 - UAV: 500 variables, 250 intermediate waypoints, 300 spline samples, three scenarios
 
-The algorithm accepts five parameters:
+The algorithm accepts eight positional parameters; the original five-parameter
+calls remain valid because the final three parameters have defaults:
 
 ```text
-{TR_init, K_loc_max, useMacroQuadratic, useLRSS, useAdaptiveTR}
+{TR_init, K_loc_max, useMacroQuadratic, useLRSS, useAdaptiveTR, useLocalQuad, useOCD, ocdGridSize}
 ```
 
-The default is `{0.4,150,1,1,1}`. The ablation runner uses the same implementation with one component disabled at a time, avoiding drift between duplicated source files.
+The default is `{0.4,150,1,1,1,1,1,21}`. In particular, `wo-LQS` disables
+only the local quadratic candidate; the SVD-RBF and OCD candidates remain
+active. `wo-OCD` disables only the OCD candidate. `useLRSS=0` retains the older
+all-local-branches-off switch but is not the paper's `wo-LQS` variant.
 
 ## Important interpretation
 
@@ -90,7 +107,8 @@ The diagnostic held-out objective calls used for the paper's surrogate-error/TR 
 
 Please cite the associated manuscript and PlatEMO:
 
-The repository's `CITATION.cff` currently cites software version 1.0.0. Add the article DOI, volume, pages, and final publication year after acceptance; no publication metadata is guessed in this release.
+The repository's `CITATION.cff` cites software version 1.1.0. Article DOI,
+volume, and pages are not guessed in this release.
 
 ```bibtex
 @article{Tian2017PlatEMO,
@@ -107,3 +125,4 @@ The repository's `CITATION.cff` currently cites software version 1.0.0. Add the 
 ## License
 
 The SDMSPSO-specific code in this repository is released under the MIT License. PlatEMO and any baseline implementations remain subject to their respective terms.
+

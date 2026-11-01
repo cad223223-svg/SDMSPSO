@@ -2,8 +2,8 @@ cff-version: 1.2.0
 message: "If you use this software, please cite the associated paper and PlatEMO."
 title: "SDMSPSO: Synergistic dual-scale multi-surrogate particle swarm optimization"
 type: software
-version: 1.0.0
-date-released: 2026-08-09
+version: 1.1.0
+date-released: 2026-11-01
 authors:
   - family-names: Liu
     given-names: Min
@@ -20,3 +20,4 @@ authors:
   - family-names: Pan
     given-names: Jeng-Shyang
     email: 100112@nuist.edu.cn
+
